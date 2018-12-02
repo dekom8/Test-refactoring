@@ -5,18 +5,15 @@ namespace WeightBallancedBinaryTree
     /// Вершина (вузол) дерева.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    class Node<T>
+    public class Node<T>
     {
-        private Node<T> leftchild, rightchild, parent;//ліва дитина, права дитина, батько вузла
-        private readonly T data;//дані, що містить вузол
+        private Node<T> leftchild, rightchild, parent;
+        private readonly T data;
         private readonly string key;//ключ, з яким асоціюється значення вузла
         private int weight;//вага - кількість вершин у даному піддереві
         public Node(string key) : this(default(T), key) { }
         public Node(T data, string key)//ініціалізація вузла з даним ключем та даними
         {
-            leftchild = null;//спочатку вузол ні з ким не зв*язаний
-            rightchild = null;
-            parent = null;
             this.data = data;
             this.key = key;
             this.weight = 1;//вага самого вузла = 1
@@ -27,10 +24,10 @@ namespace WeightBallancedBinaryTree
         public Node<T> LeftChild
         {
             get { return leftchild; }
-            internal set
+            set
             {
                 if (leftchild != null)
-                    leftchild.parent = null;
+                { leftchild.parent = null; }
                 if (value != null)
                 {//далі відбувається з*єднання посиланнями
                     value.Parent = null;
@@ -46,10 +43,12 @@ namespace WeightBallancedBinaryTree
         public Node<T> RightChild
         {
             get { return rightchild; }
-            internal set
+            set
             {
                 if (rightchild != null)
+                {
                     rightchild.parent = null;
+                }
                 if (value != null)
                 {
                     value.Parent = null;
@@ -65,7 +64,7 @@ namespace WeightBallancedBinaryTree
         public Node<T> Parent
         {
             get { return parent; }
-            internal set
+            set
             {
                 if (parent != null)//розриваються відносини зі "старим" батьком
                 {
@@ -76,23 +75,27 @@ namespace WeightBallancedBinaryTree
                     parent = null;
                 }
                 if (value != null)
+                {
                     if (key.CompareTo(value.key) < 0)//установлюються відносини з новим батьком
                         value.LeftChild = null;
                     else value.RightChild = null;
-                parent = value;
+                    parent = value;
+                }
                 if (parent != null)//установлюються відносини нового батька з даним вузлом
+                {
                     if (key.CompareTo(parent.key) < 0)
                         parent.leftchild = this;
                     else parent.rightchild = this;
+                }
             }
         }
         /// <summary>
         /// Повертає значення ваги даного вузла.
         /// </summary>
-        public int Weight
+        internal int Weight
         {
             get { return weight; }
-            internal set
+            set
             {
                 if (weight < 0)
                     throw new ArgumentException("impossible argument");
@@ -114,16 +117,22 @@ namespace WeightBallancedBinaryTree
         /// <summary>
         /// Повертає значення балансу вузла.
         /// </summary>
+        const double weightPrec = 1.00000000000001;
+        const double prevWeightPrec = 1.0000000000000000001;
+        
         public double Balance
-        {
-            get
+        {   
+        get
             {
-                double WLeft;
+                double leftSubTreeWeight;
+                double allTreeWeight;
+                double prevWeight;
                 if (leftchild != null)
-                    WLeft = leftchild.weight + 1.00000000000001;
-                else WLeft = 1.0;
-                double WAll = Math.Pow(Convert.ToDouble(weight+1.0000000000000000001),-1.0);
-                return WLeft * WAll;
+                     leftSubTreeWeight = leftchild.weight + weightPrec;
+                else leftSubTreeWeight = 1.0;
+                prevWeight = weight + prevWeightPrec;
+                allTreeWeight = Math.Pow(prevWeight, -1.0);
+                return leftSubTreeWeight * allTreeWeight;
             }
         }
     }
@@ -131,12 +140,41 @@ namespace WeightBallancedBinaryTree
     /// Бінарне дерево пошуку.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    class BinaryTree<T>
+    public class BinaryTree<T>
     {
-        protected Node<T> root;//корінь дерева.
+        protected Node<T> root;
+        protected Node<T> rightchild;
+        protected Node<T> leftchild;
+        protected Node<T> l_leftchild;
+        protected Node<T> r_rightchild;//корінь дерева.
         /// <summary>
         /// Повертає посилання на корінь даного дерева.
         /// </summary>
+        public BinaryTree()
+        { }
+        public BinaryTree(Node<T> root)
+        {
+            this.root = root;
+        }
+        public BinaryTree(Node<T> root, Node<T> leftchild, Node<T> rightchild)
+        {
+            this.root = root;
+            root.LeftChild = leftchild;
+            root.RightChild = rightchild;
+        }
+        public BinaryTree(Node<T> root, Node<T> leftchild, Node<T> rightchild, Node<T> r_rightchild, Node<T> l_leftchild)
+        {
+            this.root = root;
+            this.rightchild = rightchild;
+            this.leftchild = leftchild;
+            this.l_leftchild = l_leftchild;
+            this.r_rightchild = r_rightchild;
+            root.LeftChild = this.leftchild;
+            root.RightChild = this.rightchild;
+            l_leftchild = this.root.LeftChild.LeftChild;
+            r_rightchild = this.root.RightChild.RightChild;
+        }
+
         public Node<T> Root
         {
             get { return root; }
@@ -183,7 +221,10 @@ namespace WeightBallancedBinaryTree
         public Node<T> Insert(Node<T> node)
         {
             if (root == null)
-            { root = node; return null; }
+            {
+              root = node;
+              return null;
+            }
             root.Weight++;
             if (node.Key.CompareTo(root.Key) < 0)
             {
@@ -247,6 +288,29 @@ namespace WeightBallancedBinaryTree
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
+        private Node<T> Rearrangetree(string key, Node<T> node, Node<T> somenode)
+        {
+            while (somenode.LeftChild != null)
+                somenode = somenode.LeftChild;
+            ReduceWeight(somenode);//зменшується вага всіх батьківських вершин
+            if (somenode.Parent != null)
+                if (somenode != node.RightChild)
+                    somenode.Parent.LeftChild = somenode.RightChild;
+                else somenode.Parent.RightChild = somenode.RightChild;
+            somenode.Weight = node.Weight;//відбувається заміна елементів (вага, посиланн)
+            somenode.Parent = node.Parent;
+            somenode.RightChild = node.RightChild;
+            somenode.LeftChild = node.LeftChild;
+            if (node == root)//зміна посилання на корінь, якщо є потреба
+                root = somenode;
+            if (somenode.RightChild != null)//обирається посилання, з якого почнеться балансування
+            {
+                somenode = somenode.RightChild;
+                while (somenode.LeftChild != null)
+                    somenode = somenode.LeftChild;
+            }
+            return somenode;
+        }
         public Node<T> Delete(string key)
         {
             Node<T> node = root;
@@ -254,39 +318,26 @@ namespace WeightBallancedBinaryTree
                 if (key.CompareTo(node.Key) < 0)
                     node = node.LeftChild;
                 else node = node.RightChild;
-
             if (node == null)
                 return null;
             if (node == root && node.LeftChild == null && node.RightChild == null)
-            { root = null; return null; }
+            {
+                root = null;
+                return null;
+            }
             if (node.RightChild != null)//якщо права дитина є, то береться мінімальний елемент
             {
-                Node<T> somenode = node.RightChild;
-                while (somenode.LeftChild != null)
-                    somenode = somenode.LeftChild;
-                ReduceWeight(somenode);//зменшується вага всіх батьківських вершин
-                if (somenode.Parent != null)
-                    if (somenode != node.RightChild)
-                        somenode.Parent.LeftChild = somenode.RightChild;
-                    else somenode.Parent.RightChild = somenode.RightChild;
-                somenode.Weight = node.Weight;//відбувається заміна елементів (вага, посиланн)
-                somenode.Parent = node.Parent;
-                somenode.RightChild = node.RightChild;
-                somenode.LeftChild = node.LeftChild;
-                if (node == root)//зміна посилання на корінь, якщо є потреба
-                    root = somenode;
-                if (somenode.RightChild != null)//обирається посилання, з якого почнеться балансування
-                {
-                    somenode = somenode.RightChild;
-                    while (somenode.LeftChild != null)
-                        somenode = somenode.LeftChild;
-                }
-                    return somenode;
+                Node<T> somenode = node.RightChild; ;
+                somenode =  Rearrangetree(key, node, somenode);
             }
             else
             {
                 if (node.LeftChild == null)//"підтягується" елемент зліва
-                { ReduceWeight(node); node.Parent = null; return null; }
+                {
+                    ReduceWeight(node);
+                    node.Parent = null;
+                    return null;
+                }
                 if (node.Parent != null)
                     node.LeftChild.Parent = node.Parent;
                 else
@@ -310,13 +361,24 @@ namespace WeightBallancedBinaryTree
     /// Зважено-збалансоване бінарне дерево пошуку.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    class WeightBallancedTree<T> : BinaryTree<T>
+     public class WeightBallancedTree<T> : BinaryTree<T>
     {
-        private const double a = 1.0 / 3.0;//межа балансу
+        private const double balanceBorder = 1.0 / 3.0;//межа балансу
+        const double precise = 0.0001;
         /// <summary>
         /// Вставляє елемент у дерево та балансує дерево.
         /// </summary>
         /// <param name="node"></param>
+        public WeightBallancedTree(Node<T> root)
+        {
+            this.root = root;
+        }
+        public WeightBallancedTree(Node<T> root, Node<T> somechild, Node<T> probechild)
+        {
+            
+        }
+        public WeightBallancedTree()
+        { }
         new public void Insert(Node<T> node)
         {
             node = base.Insert(node);
@@ -339,7 +401,7 @@ namespace WeightBallancedBinaryTree
                 Balancing(node);
             }
         }
-        private void RightRotation(Node<T> node)//операція правого повороту
+        private void RotateRight(Node<T> node)//операція правого повороту
         {
             Node<T> Top = node.LeftChild;//обирається вершина, навколо якої здійснюватиметься оберт
             Node<T> TopRight = Top.RightChild;// зберігається посилання на праву дитину Тор
@@ -356,7 +418,7 @@ namespace WeightBallancedBinaryTree
                 Top.Weight = Top.LeftChild.Weight;
             Top.Weight = Top.Weight + 1 + Top.RightChild.Weight;//зміна ваги після повороту
         }
-        private void LeftRotation(Node<T> node)//операція лівого повороту
+        private void RotateLeft(Node<T> node)//операція лівого повороту
         {
             Node<T> Top = node.RightChild;//вершина, навколо якої здійснюється оберт
             Node<T> TopLeft = Top.LeftChild;//посилання на ліву дитину Тор
@@ -372,25 +434,72 @@ namespace WeightBallancedBinaryTree
                 Top.Weight = Top.RightChild.Weight;
             Top.Weight = 1 + Top.Weight + Top.LeftChild.Weight;
         }
-        
+        //private void RightRotateLeft(Node<T> node)//операція право-лівого повороту
+        //{
+        //    Node<T> Top = node.RightChild.LeftChild;//вершина, навколо якої здійсниться поворот
+        //    Node<T> TopLeft = Top.LeftChild;//посилання на ліву дитину Тор
+        //    Node<T> TopRight = Top.RightChild;
+        //    Top.Parent = null;
+        //    Top.Parent = node.Parent;
+        //    if (Top.Parent == null)
+        //        root = Top;
+        //    Top.LeftChild = node;
+        //    Top.RightChild = node.RightChild;
+        //    node.RightChild = TopLeft;
+        //    Top.RightChild.LeftChild = TopRight;
+        //    Top.LeftChild.Weight -= Top.RightChild.Weight;//зміна ваги вузлів після повороту
+        //    if (Top.LeftChild.RightChild != null)
+        //        Top.LeftChild.Weight += Top.LeftChild.RightChild.Weight;
+        //    Top.RightChild.Weight -= Top.Weight;
+        //    if (Top.RightChild.LeftChild != null)
+        //        Top.RightChild.Weight += Top.RightChild.LeftChild.Weight;
+        //    Top.Weight = 1 + Top.LeftChild.Weight + Top.RightChild.Weight;
+        //}
+        //private void LeftRotateRight(Node<T> node)//ліво-правий поворот
+        //{
+        //    Node<T> Top = node.LeftChild.RightChild;//вершина, навколо якої здійснюється поворот
+        //    Node<T> TopLeft = Top.LeftChild;//посилання на ліву дитину Тор
+        //    Node<T> TopRight = Top.RightChild;// посилання на праву дитину Тор
+        //    Top.Parent = null;
+        //    Top.Parent = node.Parent;
+        //    if (Top.Parent == null)
+        //        root = Top;
+        //    Top.RightChild = node;
+        //    Top.LeftChild = node.LeftChild;
+        //    Top.RightChild.LeftChild = TopRight;
+        //    Top.LeftChild.RightChild = TopLeft;
+        //    Top.RightChild.Weight -= Top.LeftChild.Weight;//зміна ваги вузлів після повороту
+        //    if (Top.RightChild.LeftChild != null)
+        //        Top.RightChild.Weight += Top.RightChild.LeftChild.Weight;
+        //    Top.LeftChild.Weight -= Top.Weight;
+        //    if (Top.LeftChild.RightChild != null)
+        //        Top.LeftChild.Weight += TopLeft.Weight;
+        //    Top.Weight = 1 + Top.LeftChild.Weight + Top.RightChild.Weight;
+        //}
         private void Balancing(Node<T> node)//операція балансування
         {
-            double border = 1.0 - (Math.Pow(2.0, 0.5)/2.0);//межа балансу
+            
+            double border = 1.0 - Math.Pow(2.0, 0.5) / 2.0;//межа балансу
             while (node != null)//перевіряється кожен з батьківських елементів
             {
-                if (node.Balance >= (a - 0.0001) && node.Balance <= ((1 - a) + 0.0001))
+                if (node.Balance >= (balanceBorder - precise) && node.Balance <= ((1 - balanceBorder) + precise))
                 {
                     node = node.Parent;
                 }
                 else
                 {
                     double alpha = node.Balance;
-                    
-                    if (node.RightChild != null && node.RightChild.Balance <= ((1.0 - 2.0 * alpha) / (1.0 - alpha))+0.0001)
-                        LeftRotation(node);
+                    //if (alpha <= (border+precise) && node.RightChild != null && node.RightChild.LeftChild != null && node.RightChild.Balance >= ((1.0 - 2.0 * alpha) / (1.0 - alpha)-precise))
+                    //         RightRotateLeft(node); 
+                    //else
+                    //    if (node.LeftChild != null && node.LeftChild.RightChild != null && node.LeftChild.Balance <= ((1.0 - node.Balance)/node.Balance)+precise)
+                    //         LeftRotateRight(node); 
+                    //else
+                    if (node.RightChild != null && node.RightChild.Balance <= ((1.0 - 2.0 * alpha) / (1.0 - alpha))+precise)
+                        RotateLeft(node);
                     else
-                        if (node.LeftChild != null && node.LeftChild.Balance >= ((1.0 - node.Balance) / node.Balance)-0.0001)
-                            RightRotation(node);
+                        if (node.LeftChild != null && node.LeftChild.Balance >= ((1.0 - node.Balance) / node.Balance)-precise)
+                            RotateRight(node);
                 }
             }
         }
